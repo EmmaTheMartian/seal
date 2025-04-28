@@ -1,0 +1,8 @@
+[ nav:
+	"Index" <index>
+	"About" <about>
+	"Contact" <contact>
+	"Projects" <projects>
+]
+
+[ h1: "Hai!" ]
