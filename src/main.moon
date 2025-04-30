@@ -182,7 +182,11 @@ simple_element = (el, tokens) ->
 	return html
 
 get_builtin_macros = -> return {
-	raw: (t) -> return t[1].text
+	raw: (t) ->
+		print 'raw'
+		for _, tok in ipairs t
+			print tok.text
+		return t[1].text
 	h1: (t) -> return simple_element 'h1', t
 	h2: (t) -> return simple_element 'h2', t
 	h3: (t) -> return simple_element 'h3', t
@@ -190,32 +194,93 @@ get_builtin_macros = -> return {
 	h5: (t) -> return simple_element 'h5', t
 	h6: (t) -> return simple_element 'h6', t
 	p: (t) -> return simple_element 'p', t
+	a: (t) -> return '<a href="' .. t[1] .. '">' .. t[2] .. '</a>'
 }
 
-compile = (file, print_statements) ->
-	require 'conf'
+compile_text = nil -- forward declare or something
 
-	file = io.open file
-	source = file\read '*all'
-	file\close!
-	parser = Parser Tokenizer(source)
-	macros = get_builtin_macros!
+compile_str = (str, macros) ->
+	print 'cs ' .. str
+	compiled_str = ''
+	ch = ''
+	prev = ''
+	prev_prev = ''
+	depth = 0
+	i = 1
+	while i <= #str
+		print '  i ' .. i .. '/' .. #str
+		ch = str\sub i, i
+		print '  ch ' .. ch
+
+		if prev_prev != '\\' and prev == '$' and ch == '['
+			depth += 1
+			e = '['
+			i += 1
+			while depth > 0 and i <= #str
+				ch = str\sub i, i
+				if ch == '['
+					depth += 1
+				elseif ch == ']'
+					depth -= 1
+				e ..= ch
+				i += 1
+				prev_prev = prev
+				prev = ch
+				ch = str[i]
+			compiled_str ..= compile_text e, macros
+		else
+			compiled_str ..= ch
+
+		i += 1
+		prev_prev = prev
+		prev = ch
+		ch = str[i]
+	return compiled_str
+
+compile_text = (text, macros) ->
+	parser = Parser Tokenizer(text)
+
 	html = ''
 
 	for _, statement in ipairs parser\parse!
-		if print_statements
-			print '[' .. i .. '] ' .. statement.id .. ': ' .. #statement.params .. ' params'
 		if macros[statement.id] == nil
 			it = require 'macros.' .. statement.id
 			macros[statement.id] = it
 			if it == nil
 				print 'error: unknown macro: ' .. statement.id
 				os.exit 1
-		html ..= macros[statement.id](statement.params)
+
+		-- process string formatting
+		for key, param in pairs statement.params
+			if param.kind == 'string'
+				s = compile_str param.text, macros
+				print s
+				statement.params[key].text = s
+
+		for key, param in pairs statement.params
+			print 'param: ' .. param.text
+
+		m = macros[statement.id](statement.params)
+		if not m
+			print 'expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`'
+			os.exit 1
+		html ..= m
 
 	return html
 
-text = compile('index.seal')
+
+compile = (file) ->
+	require 'conf'
+
+	file = io.open file
+	source = file\read '*all'
+	file\close!
+	macros = get_builtin_macros!
+
+	return compile_text source, macros
+
+
+text = compile 'index.seal'
 if text
 	f = io.open 'output.html', 'w'
 	f\write text

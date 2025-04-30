@@ -2,6 +2,8 @@
 
 [ h1: "Hello, World!" ]
 
+[ thingy: "I smell a bozo around here. "]
+[ bozo: "Definitely a bozo :3" ]
 [ p: "Bozo :3" ]
 
-[ bozo: "Definitely a bozo :3" ]
+[ p: "Google linkie $[ a: "here" <https://google.com> ]!"]
