@@ -1,1 +1,7 @@
-[ title: "Seal" ]
+[ raw: "<title>Seal</title>" ]
+
+[ h1: "Hello, World!" ]
+
+[ p: "Bozo :3" ]
+
+[ bozo: "Definitely a bozo :3" ]

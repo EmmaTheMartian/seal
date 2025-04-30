@@ -174,13 +174,22 @@ class Parser
 
 		return statements
 
+simple_element = (el, tokens) ->
+	html = '<' .. el .. '>'
+	for _, token in ipairs tokens
+		html ..= token.text
+	html ..= '</' .. el .. '>'
+	return html
+
 get_builtin_macros = -> return {
-	h1: (tokens) ->
-		html = '<h1>'
-		for _, token in ipairs tokens
-			html ..= token.text
-		html ..= '</h1>'
-		return html
+	raw: (t) -> return t[1].text
+	h1: (t) -> return simple_element 'h1', t
+	h2: (t) -> return simple_element 'h2', t
+	h3: (t) -> return simple_element 'h3', t
+	h4: (t) -> return simple_element 'h4', t
+	h5: (t) -> return simple_element 'h5', t
+	h6: (t) -> return simple_element 'h6', t
+	p: (t) -> return simple_element 'p', t
 }
 
 compile = (file, print_statements) ->
@@ -202,10 +211,6 @@ compile = (file, print_statements) ->
 			if it == nil
 				print 'error: unknown macro: ' .. statement.id
 				os.exit 1
-		print statement
-		print statement.params
-		for i, param in ipairs statement.params
-			print i .. ' ' .. param.text
 		html ..= macros[statement.id](statement.params)
 
 	return html
