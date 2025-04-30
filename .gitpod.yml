@@ -1,0 +1,5 @@
+tasks:
+  - init: |
+      apt install -y luarocks
+      luarocks install moonscript
+      luarocks install fennel
