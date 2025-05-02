@@ -1,5 +1,1 @@
-src/seal.lua
-
-output.html
-
-/*.rockspec
+/test/output.html

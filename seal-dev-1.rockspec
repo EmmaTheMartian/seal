@@ -1,12 +1,10 @@
-local git_ref = '$git_ref'
-local modrev = '$modrev'
-local specrev = '$specrev'
-
-local repo_url = '$repo_url'
-
 rockspec_format = '3.0'
-package = '$package'
-version = modrev ..'-'.. specrev
+package = 'seal'
+version = 'dev-1'
+
+source = {
+	url = 'git://github.com/emmathemartian/seal.git'
+}
 
 description = {
 	summary = "A metaprogrammable markup language designed for making simple websites.",
@@ -26,20 +24,10 @@ description = {
 }
 
 dependencies = {
+	"lua >= 5.1",
 	"argparse",
 	"moonscript",
 }
-
-source = {
-	url = repo_url .. '/archive/' .. git_ref .. '.zip',
-	dir = '$repo_name-' .. '$archive_dir_suffix',
-}
-
-if modrev == 'scm' or modrev == 'dev' then
-	source = {
-		url = repo_url:gsub('https', 'git')
-	}
-end
 
 build = {
 	type = "builtin",
