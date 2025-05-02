@@ -1,7 +1,17 @@
+[ begin: "head" ]
 [ raw: "<title>Seal</title>" ]
+[ end: "head" ]
 
-[ h1: "Hello, World!" ]
+[ begin: "body" ]
+	[ h1: "Hello, World!" ]
 
-[ p: "Bozo :3" ]
+	[ hr ]
 
-[ bozo: "Definitely a bozo :3" ]
+	[ thingy: "I smell a bozo around here. "]
+	[ bozo: "Definitely a bozo :3" ]
+	[ p: "Bozo :3" ]
+
+	[ hr ]
+
+	[ p: "Google linkie $[ a: "here" <https://google.com> ]!"]
+[ end: "body"]
