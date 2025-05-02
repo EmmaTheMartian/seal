@@ -1,8 +1,9 @@
+rockspec_format = "3.0"
 package = "seal"
 version = "dev-1"
 
 source = {
-   url = "git+https://github.com/EmmaTheMartian/seal.git"
+   url = "git+https://github.com/EmmaTheMartian/seal.git",
 }
 
 description = {
@@ -13,22 +14,22 @@ description = {
    labels = {
       "seal",
       "html",
-      "moonscript"
-   }
+      "moonscript",
+   },
 }
 
 dependencies = {
    "lua >= 5.1",
-   "moonscript"
+   "moonscript",
 }
 
 build = {
    type = "command",
-   build_command = "moonc src/main.moon"
+   build_command = "moonc src/main.moon",
    modules = {
-      ["seal"] = "src/main.lua"
+      ["seal"] = "src/main.lua",
    },
    install = {
-      bin = { "bin/seal" }
-   }
+      bin = { "bin/seal" },
+   },
 }
