@@ -305,10 +305,3 @@ compile = (file) ->
 	text = compile_text source, macros
 
 	return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
-
-
-text = compile 'index.seal'
-if text
-	f = io.open 'output.html', 'w'
-	f\write text
-	f\close!

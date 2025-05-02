@@ -1,0 +1,9 @@
+#!/usr/bin/env lua
+local seal = require('seal')
+
+local text = seal.compile('index.seal')
+if text then
+	local f = io.open('output.html', 'w')
+	f:write(text)
+	f:close()
+end
