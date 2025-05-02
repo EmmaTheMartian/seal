@@ -456,3 +456,18 @@ compile = function(file)
   local text = compile_text(source, macros)
   return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 end
+return {
+  is_term = is_term,
+  is_alnum = is_alnum,
+  TokenKind = TokenKind,
+  Token = Token,
+  Tokenizer = Tokenizer,
+  Statement = Statement,
+  Parser = Parser,
+  simple_element = simple_element,
+  compile_text = compile_text,
+  compile_str = compile_str,
+  config = config,
+  get_builtin_macros = get_builtin_macros,
+  compile = compile
+}

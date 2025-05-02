@@ -305,3 +305,19 @@ compile = (file) ->
 	text = compile_text source, macros
 
 	return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
+
+{
+	:is_term,
+	:is_alnum,
+	:TokenKind,
+	:Token,
+	:Tokenizer,
+	:Statement,
+	:Parser,
+	:simple_element,
+	:compile_text,
+	:compile_str,
+	:config,
+	:get_builtin_macros,
+	:compile,
+}
