@@ -23,6 +23,7 @@ class Tokenizer
 		@line = 1
 		@column = 1
 		@ch = self\peek!
+		@prev = nil
 		@start = 1
 
 	is_done: =>
@@ -31,6 +32,8 @@ class Tokenizer
 	advance: =>
 		@pos += 1
 		@column += 1
+		@prev_prev = @prev
+		@prev = @ch
 		@ch = self\peek!
 
 	peek: =>
@@ -59,8 +62,11 @@ class Tokenizer
 	lex_str: =>
 		self\advance!
 		@start = @pos
-		while @ch != '"'
-			if @ch == '\\'
+		in_expr = false
+		while true
+			if @ch == '"' and not in_expr
+				break
+			elseif @ch == '\\'
 				self\advance!
 			elseif @ch == '\0'
 				print 'error: unterminated string'
@@ -68,6 +74,10 @@ class Tokenizer
 			elseif @ch == '\n'
 				@line += 1
 				@column = 1
+			elseif @ch == '[' and @prev == '$' and @prev_prev != '\\'
+				in_expr = true
+			elseif @ch == ']' and @prev != '\\' and in_expr
+				in_expr = false
 			self\advance!
 		self\advance!
 		-- slice the quotes at the start and end
@@ -158,18 +168,21 @@ class Parser
 		while self\accept '['
 			self\expect 'id', 'expected identifier for macro invoke'
 			id = @prev.text
-			self\expect ':', 'expected colon (`:`) after macro name'
+
 			params = {}
-			depth = 1
-			while true
-				if @token.kind == '['
-					depth += 1
-				elseif @token.kind == ']'
-					depth -= 1
-					break if depth == 0
-				table.insert params, @token
-				self\advance!
+			if self\accept ':'
+				depth = 1
+				while true
+					if @token.kind == '['
+						depth += 1
+					elseif @token.kind == ']'
+						depth -= 1
+						break if depth == 0
+					table.insert params, @token
+					self\advance!
+
 			self\expect ']', 'expected closed bracket (`]`) to end statement'
+
 			table.insert statements, Statement(id, params)
 
 		return statements
@@ -181,26 +194,9 @@ simple_element = (el, tokens) ->
 	html ..= '</' .. el .. '>'
 	return html
 
-get_builtin_macros = -> return {
-	raw: (t) ->
-		print 'raw'
-		for _, tok in ipairs t
-			print tok.text
-		return t[1].text
-	h1: (t) -> return simple_element 'h1', t
-	h2: (t) -> return simple_element 'h2', t
-	h3: (t) -> return simple_element 'h3', t
-	h4: (t) -> return simple_element 'h4', t
-	h5: (t) -> return simple_element 'h5', t
-	h6: (t) -> return simple_element 'h6', t
-	p: (t) -> return simple_element 'p', t
-	a: (t) -> return '<a href="' .. t[1] .. '">' .. t[2] .. '</a>'
-}
-
 compile_text = nil -- forward declare or something
 
 compile_str = (str, macros) ->
-	print 'cs ' .. str
 	compiled_str = ''
 	ch = ''
 	prev = ''
@@ -208,9 +204,7 @@ compile_str = (str, macros) ->
 	depth = 0
 	i = 1
 	while i <= #str
-		print '  i ' .. i .. '/' .. #str
 		ch = str\sub i, i
-		print '  ch ' .. ch
 
 		if prev_prev != '\\' and prev == '$' and ch == '['
 			depth += 1
@@ -253,21 +247,52 @@ compile_text = (text, macros) ->
 		-- process string formatting
 		for key, param in pairs statement.params
 			if param.kind == 'string'
-				s = compile_str param.text, macros
-				print s
-				statement.params[key].text = s
-
-		for key, param in pairs statement.params
-			print 'param: ' .. param.text
+				statement.params[key].text = compile_str param.text, macros
 
 		m = macros[statement.id](statement.params)
 		if not m
 			print 'expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`'
 			os.exit 1
+
 		html ..= m
 
 	return html
 
+config = {
+	lang: 'en'
+}
+
+get_builtin_macros = -> return {
+	raw: (t) -> return t[1].text
+	begin: (t) -> return '<' .. t[1].text .. '>'
+	end: (t) -> return '</' .. t[1].text .. '>'
+	config: (t) ->
+		config[t[1].text] = t[2].text
+		return ''
+
+	h1: (t) -> return simple_element 'h1', t
+	h2: (t) -> return simple_element 'h2', t
+	h3: (t) -> return simple_element 'h3', t
+	h4: (t) -> return simple_element 'h4', t
+	h5: (t) -> return simple_element 'h5', t
+	h6: (t) -> return simple_element 'h6', t
+	p: (t) -> return simple_element 'p', t
+	span: (t) -> return simple_element 'span', t
+	b: (t) -> return simple_element 'b', t
+	strong: (t) -> return simple_element 'strong', t
+	i: (t) -> return simple_element 'i', t
+	em: (t) -> return simple_element 'em', t
+	li: (t) -> return simple_element 'li', t
+	code: (t) -> return simple_element 'code', t
+	summary: (t) -> return simple_element 'summary', t
+	th: (t) -> return simple_element 'th', t
+	td: (t) -> return simple_element 'td', t
+
+	a: (t) -> return '<a href="' .. t[1].text .. '">' .. t[2].text .. '</a>'
+
+	hr: (t) -> return '<hr/>'
+	br: (t) -> return '<br/>'
+}
 
 compile = (file) ->
 	require 'conf'
@@ -277,7 +302,9 @@ compile = (file) ->
 	file\close!
 	macros = get_builtin_macros!
 
-	return compile_text source, macros
+	text = compile_text source, macros
+
+	return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 
 
 text = compile 'index.seal'
