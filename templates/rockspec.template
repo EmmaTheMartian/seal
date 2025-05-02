@@ -42,7 +42,8 @@ if modrev == 'scm' or modrev == 'dev' then
 end
 
 build = {
-	type = "builtin",
+	type = "command",
+	build_command = "moonc src/seal.moon",
 	modules = {
 		seal = "src/seal.lua",
 	},

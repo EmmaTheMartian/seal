@@ -21,4 +21,5 @@ jobs:
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
         with:
+          extra_luarocks_args: --force
           template: "templates/rockspec.template"
