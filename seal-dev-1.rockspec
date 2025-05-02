@@ -25,10 +25,9 @@ dependencies = {
 }
 
 build = {
-   type = "command",
-   build_command = "moonc seal/init.moon",
+   type = "builtin",
    modules = {
-      ["seal"] = "seal/init.lua",
+      seal = "src/seal.lua",
    },
    install = {
       bin = { "bin/seal" },
