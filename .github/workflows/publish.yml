@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install Moonscript
-        run: sudo luarocks install moonscript
+        run: sudo apt install -y luarocks && sudo luarocks install moonscript
       - name: Build
         run: moonc src/seal.moon
       - name: LuaRocks Upload
