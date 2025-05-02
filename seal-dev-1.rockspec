@@ -20,14 +20,15 @@ description = {
 
 dependencies = {
    "lua >= 5.1",
+   "argparse",
    "moonscript",
 }
 
 build = {
    type = "command",
-   build_command = "moonc src/main.moon",
+   build_command = "moonc seal/init.moon",
    modules = {
-      ["seal"] = "src/main.lua",
+      ["seal"] = "seal/init.lua",
    },
    install = {
       bin = { "bin/seal" },

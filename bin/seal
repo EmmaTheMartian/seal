@@ -1,9 +1,26 @@
 #!/usr/bin/env lua
-local seal = require('seal')
+local parser = require('argparse')('seal', 'A metaprogrammable markup language designed for making simple websites.')
+parser:argument('input', 'Input directory')
+parser:option('-o --output', 'Output directory', 'output')
+local args = parser:parse()
 
-local text = seal.compile('index.seal')
-if text then
-	local f = io.open('output.html', 'w')
-	f:write(text)
-	f:close()
+local seal = require 'seal'
+
+local conf = nil
+if args.input[#args.input] == '.' then
+	conf = require(args.input:gsub('/', '.') .. 'conf')
+else
+	conf = require(args.input:gsub('/', '.') .. '.conf')
 end
+
+print ': Compiling...'
+for input_file, output_file in pairs(conf) do
+	print('  ' .. input_file)
+	local text = seal.compile(input_file)
+	if text then
+		local f = io.open(args.output .. '/' .. output_file, 'w')
+		f:write(text)
+		f:close()
+	end
+end
+print ': Done'

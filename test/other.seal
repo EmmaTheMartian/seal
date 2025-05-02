@@ -1,0 +1,9 @@
+[ begin: "head" ]
+	[ raw: "<title>Seal</title>" ]
+[ end: "head" ]
+
+[ begin: "body" ]
+	[ h1: "Hello, Other!" ]
+
+	[ p: "Index linkie $[ a: "here" </> ]!"]
+[ end: "body"]

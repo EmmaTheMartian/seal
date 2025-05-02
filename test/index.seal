@@ -1,5 +1,5 @@
 [ begin: "head" ]
-[ raw: "<title>Seal</title>" ]
+	[ raw: "<title>Seal</title>" ]
 [ end: "head" ]
 
 [ begin: "body" ]
@@ -14,4 +14,5 @@
 	[ hr ]
 
 	[ p: "Google linkie $[ a: "here" <https://google.com> ]!"]
+	[ p: "Other linkie $[ a: "here" </other/> ]!"]
 [ end: "body"]
