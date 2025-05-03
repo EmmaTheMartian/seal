@@ -435,6 +435,9 @@ get_builtin_macros = function()
     td = function(t)
       return simple_element('td', t)
     end,
+    title = function(t)
+      return simple_element('title', t)
+    end,
     a = function(t)
       return '<a href="' .. t[1].text .. '">' .. t[2].text .. '</a>'
     end,
