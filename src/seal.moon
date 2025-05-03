@@ -1,10 +1,10 @@
 is_term = (str) -> return str\match('^[%(%)%[%]{}:]$') != nil
-
-is_alnum = (str) -> return str\match('^[%l%w%d_]+$') != nil
+is_alpha = (str) -> return str\match('^[%l%w%-_]+$') != nil
+is_id_char = (str) -> return str\match('^[%l%w%d%-%._]+$') != nil
 
 class TokenKind
-	TERM   = 'term'     -- any of: []{}():
-	ID     = 'id'     -- [a-zA-Z_][a-zA-Z_9-9]*
+	TERM   = 'term'   -- any of: []{}():
+	ID     = 'id'     -- [a-zA-Z_][a-zA-Z0-9\-\._]*
 	STRING = 'string' -- ".*"
 	NUMBER = 'number' -- [0-9]+(\.[0-9]+)?
 	LINK   = 'link'   -- \<.*\>
@@ -87,7 +87,7 @@ class Tokenizer
 	lex_id: =>
 		self\advance!
 		@start = @pos
-		while is_alnum @ch
+		while is_id_char @ch
 			self\advance!
 		return self\make_token 'id'
 
@@ -116,7 +116,7 @@ class Tokenizer
 			self\advance!
 			@start = @pos
 			return self\make_token @source\sub(@start, @pos)
-		elseif is_alnum @ch
+		elseif is_alpha @ch
 			return self\lex_id!
 
 		switch @ch
@@ -222,7 +222,9 @@ compile_str = (str, macros) ->
 				prev_prev = prev
 				prev = ch
 				ch = str[i]
+			print 'comp `' .. e .. '`  ch: ' .. ch
 			compiled_str ..= compile_text e, macros
+			compiled_str ..= ch
 		else
 			compiled_str ..= ch
 
@@ -310,7 +312,8 @@ compile = (file) ->
 
 {
 	:is_term,
-	:is_alnum,
+	:is_alpha,
+	:is_id_char,
 	:TokenKind,
 	:Token,
 	:Tokenizer,

@@ -2,9 +2,13 @@ local is_term
 is_term = function(str)
   return str:match('^[%(%)%[%]{}:]$') ~= nil
 end
-local is_alnum
-is_alnum = function(str)
-  return str:match('^[%l%w%d_]+$') ~= nil
+local is_alpha
+is_alpha = function(str)
+  return str:match('^[%l%w%-_]+$') ~= nil
+end
+local is_id_char
+is_id_char = function(str)
+  return str:match('^[%l%w%d%-%._]+$') ~= nil
 end
 local TokenKind
 do
@@ -329,7 +333,9 @@ compile_str = function(str, macros)
         prev = ch
         ch = str[i]
       end
+      print('comp `' .. e .. '`  ch: ' .. ch)
       compiled_str = compiled_str .. compile_text(e, macros)
+      compiled_str = compiled_str .. ch
     else
       compiled_str = compiled_str .. ch
     end
