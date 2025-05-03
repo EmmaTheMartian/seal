@@ -468,7 +468,7 @@ compile = function(fp)
   file:close()
   local macros = get_builtin_macros()
   local text = compile_text(source, macros)
-  return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
+  return '<!DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 end
 return {
   is_term = is_term,

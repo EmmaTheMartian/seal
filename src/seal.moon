@@ -309,7 +309,7 @@ compile = (fp) ->
 
 	text = compile_text source, macros
 
-	return '<DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
+	return '<!DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 
 {
 	:is_term,
