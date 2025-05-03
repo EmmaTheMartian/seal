@@ -82,7 +82,10 @@ class Tokenizer
 		self\advance!
 		-- slice the quotes at the start and end
 		self.start += 1
-		return self\make_token_with_offset 'string', -1
+		tok = self\make_token_with_offset 'string', -1
+		-- Handle escape sequences
+		tok.text = tok.text\gsub('\\n', '\n')\gsub('\\"', '"')
+		return tok
 
 	lex_id: =>
 		self\advance!
@@ -187,13 +190,6 @@ class Parser
 
 		return statements
 
-simple_element = (el, tokens) ->
-	html = '<' .. el .. '>'
-	for _, token in ipairs tokens
-		html ..= token.text
-	html ..= '</' .. el .. '>'
-	return html
-
 compile_text = nil -- forward declare or something
 
 compile_str = (str, macros) ->
@@ -264,15 +260,43 @@ compile_text = (text, macros) ->
 config = {
 	lang: 'en'
 }
+vars = {}
+element_stack = {}
+
+simple_element = (el, tokens) ->
+	html = '<' .. el .. '>'
+	for _, token in ipairs tokens
+		html ..= token.text
+	html ..= '</' .. el .. '>'
+	return html
+
+push_block_element = (el) ->
+	table.insert element_stack, el
+	return '<' .. el .. '>'
 
 get_builtin_macros = -> return {
+	-- Misc
 	raw: (t) -> return t[1].text
-	begin: (t) -> return '<' .. t[1].text .. '>'
-	end: (t) -> return '</' .. t[1].text .. '>'
+	begin: (t) -> push_block_element t[1].text
+	end: (t) ->
+		it = element_stack[#element_stack]
+		table.remove element_stack, #element_stack
+		if t[1] != nil
+			return '</' .. t[1].text .. '>'
+		return '</' .. it .. '>'
+
+	-- Config
 	config: (t) ->
 		config[t[1].text] = t[2].text
 		return ''
 
+	-- Variables
+	set: (t) ->
+		vars[t[1].text] = t[2].text
+		return ''
+	get: (t) -> return vars[t[1].text]
+
+	-- Textual elements
 	h1: (t) -> return simple_element 'h1', t
 	h2: (t) -> return simple_element 'h2', t
 	h3: (t) -> return simple_element 'h3', t
@@ -292,10 +316,20 @@ get_builtin_macros = -> return {
 	td: (t) -> return simple_element 'td', t
 	title: (t) -> return simple_element 'title', t
 
+	-- Links
 	a: (t) -> return '<a href="' .. t[2].text .. '">' .. t[1].text .. '</a>'
+	link: (t) -> return '<link rel="' .. t[1].text .. '" href="' .. t[2].text .. '" />'
+	"link.css": (t) -> return '<link rel="stylesheet" href="' .. t[1].text .. '" />'
 
+	-- Self-closing elements
 	hr: (t) -> return '<hr/>'
 	br: (t) -> return '<br/>'
+
+	-- Block elements
+	html: (_) -> return push_block_element 'html'
+	head: (_) -> return push_block_element 'head'
+	body: (_) -> return push_block_element 'body'
+	div: (_) -> return push_block_element 'div'
 }
 
 compile = (fp) ->
@@ -320,10 +354,13 @@ compile = (fp) ->
 	:Tokenizer,
 	:Statement,
 	:Parser,
-	:simple_element,
 	:compile_text,
 	:compile_str,
 	:config,
+	:vars,
+	:element_stack,
+	:simple_element,
+	:push_block_element
 	:get_builtin_macros,
 	:compile,
 }

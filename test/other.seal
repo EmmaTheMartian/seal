@@ -1,9 +1,15 @@
-[ begin: "head" ]
-	[ raw: "<title>Seal</title>" ]
-[ end: "head" ]
+[head][title: "Other"][end]
 
-[ begin: "body" ]
+[ body ]
+	[ set: name "Gandalf the Grey" ]
+	[ set: "super cool website" <https://codeberg.org/> ]
+
 	[ h1: "Hello, Other!" ]
 
+	[ div ]
+		[ p: "this message is brought to you by $[ get: name ]" ]
+	[ end ]
+
 	[ p: "Index linkie $[ a: "here" </> ]!"]
-[ end: "body"]
+	[ p: "A super cool linkie <a href=\"$[ get: "super cool website" ]\">here</a>!"]
+[ end ]

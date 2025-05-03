@@ -126,7 +126,9 @@ do
       end
       self:advance()
       self.start = self.start + 1
-      return self:make_token_with_offset('string', -1)
+      local tok = self:make_token_with_offset('string', -1)
+      tok.text = tok.text:gsub('\\n', '\n'):gsub('\\"', '"')
+      return tok
     end,
     lex_id = function(self)
       self:advance()
@@ -295,15 +297,6 @@ do
   _base_0.__class = _class_0
   Parser = _class_0
 end
-local simple_element
-simple_element = function(el, tokens)
-  local html = '<' .. el .. '>'
-  for _, token in ipairs(tokens) do
-    html = html .. token.text
-  end
-  html = html .. ('</' .. el .. '>')
-  return html
-end
 local compile_text = nil
 local compile_str
 compile_str = function(str, macros)
@@ -376,6 +369,22 @@ end
 local config = {
   lang = 'en'
 }
+local vars = { }
+local element_stack = { }
+local simple_element
+simple_element = function(el, tokens)
+  local html = '<' .. el .. '>'
+  for _, token in ipairs(tokens) do
+    html = html .. token.text
+  end
+  html = html .. ('</' .. el .. '>')
+  return html
+end
+local push_block_element
+push_block_element = function(el)
+  table.insert(element_stack, el)
+  return '<' .. el .. '>'
+end
 local get_builtin_macros
 get_builtin_macros = function()
   return {
@@ -383,14 +392,26 @@ get_builtin_macros = function()
       return t[1].text
     end,
     begin = function(t)
-      return '<' .. t[1].text .. '>'
+      return push_block_element(t[1].text)
     end,
     ["end"] = function(t)
-      return '</' .. t[1].text .. '>'
+      local it = element_stack[#element_stack]
+      table.remove(element_stack, #element_stack)
+      if t[1] ~= nil then
+        return '</' .. t[1].text .. '>'
+      end
+      return '</' .. it .. '>'
     end,
     config = function(t)
       config[t[1].text] = t[2].text
       return ''
+    end,
+    set = function(t)
+      vars[t[1].text] = t[2].text
+      return ''
+    end,
+    get = function(t)
+      return vars[t[1].text]
     end,
     h1 = function(t)
       return simple_element('h1', t)
@@ -449,11 +470,29 @@ get_builtin_macros = function()
     a = function(t)
       return '<a href="' .. t[2].text .. '">' .. t[1].text .. '</a>'
     end,
+    link = function(t)
+      return '<link rel="' .. t[1].text .. '" href="' .. t[2].text .. '" />'
+    end,
+    ["link.css"] = function(t)
+      return '<link rel="stylesheet" href="' .. t[1].text .. '" />'
+    end,
     hr = function(t)
       return '<hr/>'
     end,
     br = function(t)
       return '<br/>'
+    end,
+    html = function(_)
+      return push_block_element('html')
+    end,
+    head = function(_)
+      return push_block_element('head')
+    end,
+    body = function(_)
+      return push_block_element('body')
+    end,
+    div = function(_)
+      return push_block_element('div')
     end
   }
 end
@@ -479,10 +518,13 @@ return {
   Tokenizer = Tokenizer,
   Statement = Statement,
   Parser = Parser,
-  simple_element = simple_element,
   compile_text = compile_text,
   compile_str = compile_str,
   config = config,
+  vars = vars,
+  element_stack = element_stack,
+  simple_element = simple_element,
+  push_block_element = push_block_element,
   get_builtin_macros = get_builtin_macros,
   compile = compile
 }
