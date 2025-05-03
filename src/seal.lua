@@ -131,7 +131,7 @@ do
     lex_id = function(self)
       self:advance()
       self.start = self.pos
-      while is_alnum(self.ch) do
+      while is_id_char(self.ch) do
         self:advance()
       end
       return self:make_token('id')
@@ -160,7 +160,7 @@ do
         self:advance()
         self.start = self.pos
         return self:make_token(self.source:sub(self.start, self.pos))
-      elseif is_alnum(self.ch) then
+      elseif is_alpha(self.ch) then
         return self:lex_id()
       end
       local _exp_0 = self.ch
@@ -468,7 +468,8 @@ compile = function(file)
 end
 return {
   is_term = is_term,
-  is_alnum = is_alnum,
+  is_alpha = is_alpha,
+  is_id_char = is_id_char,
   TokenKind = TokenKind,
   Token = Token,
   Tokenizer = Tokenizer,
