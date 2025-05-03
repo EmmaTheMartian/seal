@@ -17,13 +17,25 @@ else
 	conf = require(args.input:gsub('/', '.') .. '.conf')
 end
 
+local function recursive_mkdir(path)
+	local seen = ''
+	for subpath in path:gmatch('(.*)/') do
+		seen = seen .. subpath
+		lfs.mkdir(seen)
+	end
+end
+
 print ': Compiling...'
 for input_file, output_file in pairs(conf) do
 	print('  ' .. input_file)
+
 	local text = seal.compile(input_file)
+
 	if text then
 		local path = args.output .. '/' .. output_file
-		lfs:mkdir(lfs:dir(path)) --todo: recursive(?)
+		local dir, _ = path:match('(.*/)(.*)')
+		recursive_mkdir(dir)
+
 		local f = io.open(path, 'w')
 		if f == nil then
 			print('Error: Failed to open file `' .. path .. '`')

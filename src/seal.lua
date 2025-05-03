@@ -312,6 +312,7 @@ compile_str = function(str, macros)
   while i <= #str do
     ch = str:sub(i, i)
     if prev_prev ~= '\\' and prev == '$' and ch == '[' then
+      compiled_str = compiled_str:sub(0, #compiled_str - 1)
       depth = depth + 1
       local e = '['
       i = i + 1
@@ -439,7 +440,7 @@ get_builtin_macros = function()
       return simple_element('title', t)
     end,
     a = function(t)
-      return '<a href="' .. t[1].text .. '">' .. t[2].text .. '</a>'
+      return '<a href="' .. t[2].text .. '">' .. t[1].text .. '</a>'
     end,
     hr = function(t)
       return '<hr/>'

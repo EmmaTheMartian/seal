@@ -207,6 +207,7 @@ compile_str = (str, macros) ->
 		ch = str\sub i, i
 
 		if prev_prev != '\\' and prev == '$' and ch == '['
+			compiled_str = compiled_str\sub 0, #compiled_str - 1 -- Remove the `$` from the string
 			depth += 1
 			e = '['
 			i += 1
@@ -289,7 +290,7 @@ get_builtin_macros = -> return {
 	td: (t) -> return simple_element 'td', t
 	title: (t) -> return simple_element 'title', t
 
-	a: (t) -> return '<a href="' .. t[1].text .. '">' .. t[2].text .. '</a>'
+	a: (t) -> return '<a href="' .. t[2].text .. '">' .. t[1].text .. '</a>'
 
 	hr: (t) -> return '<hr/>'
 	br: (t) -> return '<br/>'
