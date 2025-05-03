@@ -1,11 +1,15 @@
 #!/usr/bin/env lua
-local parser = require('argparse')('seal', 'A metaprogrammable markup language designed for making simple websites.')
+
+local lfs = require 'lfs'
+local argparse = require 'argparse'
+local seal = require 'seal'
+
+local parser = argparse('seal', 'A metaprogrammable markup language designed for making simple websites.')
 parser:argument('input', 'Input directory')
 parser:option('-o --output', 'Output directory', 'output')
 local args = parser:parse()
 
-local seal = require 'seal'
-
+-- TODO: This feels a little hacky
 local conf = nil
 if args.input[#args.input] == '.' then
 	conf = require(args.input:gsub('/', '.') .. 'conf')
@@ -18,7 +22,13 @@ for input_file, output_file in pairs(conf) do
 	print('  ' .. input_file)
 	local text = seal.compile(input_file)
 	if text then
-		local f = io.open(args.output .. '/' .. output_file, 'w')
+		local path = args.output .. '/' .. output_file
+		lfs:mkdir(lfs:dir(path)) --todo: recursive(?)
+		local f = io.open(path, 'w')
+		if f == nil then
+			print('Error: Failed to open file `' .. path .. '`')
+			os.exit(1)
+		end
 		f:write(text)
 		f:close()
 	end

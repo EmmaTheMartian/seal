@@ -287,6 +287,7 @@ get_builtin_macros = -> return {
 	summary: (t) -> return simple_element 'summary', t
 	th: (t) -> return simple_element 'th', t
 	td: (t) -> return simple_element 'td', t
+	title: (t) -> return simple_element 'title', t
 
 	a: (t) -> return '<a href="' .. t[1].text .. '">' .. t[2].text .. '</a>'
 
