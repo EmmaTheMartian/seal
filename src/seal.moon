@@ -221,10 +221,10 @@ compile_str = (str, macros) ->
 				i += 1
 				prev_prev = prev
 				prev = ch
-				ch = str[i]
-			print 'comp `' .. e .. '`  ch: ' .. ch
+			ch = str\sub i, i
 			compiled_str ..= compile_text e, macros
-			compiled_str ..= ch
+			if ch != nil
+				compiled_str ..= ch
 		else
 			compiled_str ..= ch
 
@@ -298,10 +298,11 @@ get_builtin_macros = -> return {
 	br: (t) -> return '<br/>'
 }
 
-compile = (file) ->
-	require 'conf'
-
-	file = io.open file
+compile = (fp) ->
+	file = io.open fp
+	if file == nil
+		print 'error: failed to read file `' .. fp .. '`'
+		os.exit 1
 	source = file\read '*all'
 	file\close!
 	macros = get_builtin_macros!

@@ -13,6 +13,6 @@
 
 	[ hr ]
 
-	[ p: "Google linkie $[ a: "here" <https://google.com> ]!"]
+	[ p: "Google linkie $[ a: "here" <https://google.com> ]"]
 	[ p: "Other linkie $[ a: "here" </other/> ]!"]
 [ end: "body"]

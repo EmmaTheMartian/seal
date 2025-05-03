@@ -32,3 +32,12 @@ Make sure to recompile `seal.moon` before committing:
 ```sh
 moonc src/seal.moon
 ```
+
+To quickly test changes, you can use this shell one-liner:
+
+```sh
+moonc src/seal.moon && lua bin/seal test -s src.seal -o test/output/
+```
+
+This will recompile `seal.moon` and then run Seal on the `test` directory using
+the compiled `src/seal.lua` instead of the system-wide Seal install (if exists).

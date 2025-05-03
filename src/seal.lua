@@ -331,11 +331,12 @@ compile_str = function(str, macros)
         i = i + 1
         prev_prev = prev
         prev = ch
-        ch = str[i]
       end
-      print('comp `' .. e .. '`  ch: ' .. ch)
+      ch = str:sub(i, i)
       compiled_str = compiled_str .. compile_text(e, macros)
-      compiled_str = compiled_str .. ch
+      if ch ~= nil then
+        compiled_str = compiled_str .. ch
+      end
     else
       compiled_str = compiled_str .. ch
     end
@@ -457,9 +458,12 @@ get_builtin_macros = function()
   }
 end
 local compile
-compile = function(file)
-  require('conf')
-  file = io.open(file)
+compile = function(fp)
+  local file = io.open(fp)
+  if file == nil then
+    print('error: failed to read file `' .. fp .. '`')
+    os.exit(1)
+  end
   local source = file:read('*all')
   file:close()
   local macros = get_builtin_macros()
