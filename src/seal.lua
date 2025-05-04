@@ -415,7 +415,6 @@ get_builtin_macros = function()
       macros[id] = function(t2)
         local p = { }
         for i, param in ipairs(params) do
-          print('param: ' .. param .. ' = ' .. t2[i].text)
           p[param] = t2[i].text
         end
         local processed_tokens = { }

@@ -276,7 +276,6 @@ get_builtin_macros = -> return {
 		macros[id] = (t2) ->
 			p = {}
 			for i, param in ipairs params
-				print 'param: ' .. param .. ' = ' .. t2[i].text
 				p[param] = t2[i].text
 
 			processed_tokens = {}
