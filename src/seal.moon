@@ -330,6 +330,8 @@ get_builtin_macros = -> return {
 	head: (_) -> return push_block_element 'head'
 	body: (_) -> return push_block_element 'body'
 	div: (_) -> return push_block_element 'div'
+	table: (_) -> return push_block_element 'table'
+	tr: (_) -> return push_block_element 'tr'
 }
 
 compile = (fp) ->
