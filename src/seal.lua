@@ -4,11 +4,11 @@ is_term = function(str)
 end
 local is_alpha
 is_alpha = function(str)
-  return str:match('^[%l%w%-_]+$') ~= nil
+  return str:match('^[%l%w%-$_]+$') ~= nil
 end
 local is_id_char
 is_id_char = function(str)
-  return str:match('^[%l%w%d%-%._]+$') ~= nil
+  return str:match('^[%l%w%d%-$_%.]+$') ~= nil
 end
 local TokenKind
 do
@@ -202,6 +202,34 @@ do
   _base_0.__class = _class_0
   Tokenizer = _class_0
 end
+local Tokens
+do
+  local _class_0
+  local _base_0 = {
+    get_next_token = function(self)
+      self.i = self.i + 1
+      return self.tokens[self.i]
+    end
+  }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, tokens)
+      self.tokens = tokens
+      self.i = 0
+    end,
+    __base = _base_0,
+    __name = "Tokens"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Tokens = _class_0
+end
 local Statement
 do
   local _class_0
@@ -298,74 +326,7 @@ do
   Parser = _class_0
 end
 local compile_text = nil
-local compile_str
-compile_str = function(str, macros)
-  local compiled_str = ''
-  local ch = ''
-  local prev = ''
-  local prev_prev = ''
-  local depth = 0
-  local i = 1
-  while i <= #str do
-    ch = str:sub(i, i)
-    if prev_prev ~= '\\' and prev == '$' and ch == '[' then
-      compiled_str = compiled_str:sub(0, #compiled_str - 1)
-      depth = depth + 1
-      local e = '['
-      i = i + 1
-      while depth > 0 and i <= #str do
-        ch = str:sub(i, i)
-        if ch == '[' then
-          depth = depth + 1
-        elseif ch == ']' then
-          depth = depth - 1
-        end
-        e = e .. ch
-        i = i + 1
-        prev_prev = prev
-        prev = ch
-      end
-      ch = str:sub(i, i)
-      compiled_str = compiled_str .. compile_text(e, macros)
-      if ch ~= nil then
-        compiled_str = compiled_str .. ch
-      end
-    else
-      compiled_str = compiled_str .. ch
-    end
-    i = i + 1
-    prev_prev = prev
-    prev = ch
-    ch = str[i]
-  end
-  return compiled_str
-end
-compile_text = function(text, macros)
-  local parser = Parser(Tokenizer(text))
-  local html = ''
-  for _, statement in ipairs(parser:parse()) do
-    if macros[statement.id] == nil then
-      local it = require('macros.' .. statement.id)
-      macros[statement.id] = it
-      if it == nil then
-        print('error: unknown macro: ' .. statement.id)
-        os.exit(1)
-      end
-    end
-    for key, param in pairs(statement.params) do
-      if param.kind == 'string' then
-        statement.params[key].text = compile_str(param.text, macros)
-      end
-    end
-    local m = macros[statement.id](statement.params)
-    if not m then
-      print('expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`')
-      os.exit(1)
-    end
-    html = html .. m
-  end
-  return html
-end
+local compile_tokens = nil
 local config = {
   lang = 'en'
 }
@@ -385,6 +346,7 @@ push_block_element = function(el)
   table.insert(element_stack, el)
   return '<' .. el .. '>'
 end
+local macros = { }
 local get_builtin_macros
 get_builtin_macros = function()
   return {
@@ -411,7 +373,65 @@ get_builtin_macros = function()
       return ''
     end,
     get = function(t)
-      return vars[t[1].text]
+      if vars[t[1].text] == nil then
+        print('error: no such variable `' .. t[1].text .. '`')
+        return os.exit(1)
+      else
+        return vars[t[1].text]
+      end
+    end,
+    def = function(t)
+      local id = t[1].text
+      local params = nil
+      local tokens = nil
+      for i, tok in ipairs(t) do
+        local _continue_0 = false
+        repeat
+          if i == 1 then
+            _continue_0 = true
+            break
+          elseif params == nil and tok.kind == '(' then
+            params = { }
+          elseif tokens == nil and tok.kind == ')' then
+            tokens = { }
+          elseif tokens ~= nil then
+            table.insert(tokens, tok)
+          elseif params ~= nil then
+            table.insert(params, tok.text)
+          end
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      if params == nil then
+        print('error: `def`: no parameter list provided')
+        os.exit(1)
+      elseif tokens == nil then
+        print('error: `def`: no code provided')
+        os.exit(1)
+      end
+      macros[id] = function(t2)
+        local p = { }
+        for i, param in ipairs(params) do
+          print('param: ' .. param .. ' = ' .. t2[i].text)
+          p[param] = t2[i].text
+        end
+        local processed_tokens = { }
+        for i, token in ipairs(tokens) do
+          processed_tokens[i] = Token(token.line, token.column, token.kind, token.text)
+          if token.text:sub(1, 1) == '$' and p[token.text:sub(2, #token.text)] ~= nil then
+            processed_tokens[i].text = p[token.text:sub(2, #token.text)]
+          end
+        end
+        return compile_tokens(processed_tokens)
+      end
+      return ''
+    end,
+    undef = function(t)
+      macros[t[1].text] = nil
+      return ''
     end,
     h1 = function(t)
       return simple_element('h1', t)
@@ -502,6 +522,81 @@ get_builtin_macros = function()
     end
   }
 end
+macros = get_builtin_macros()
+local compile_str
+compile_str = function(str)
+  local compiled_str = ''
+  local ch = ''
+  local prev = ''
+  local prev_prev = ''
+  local depth = 0
+  local i = 1
+  while i <= #str do
+    ch = str:sub(i, i)
+    if prev_prev ~= '\\' and prev == '$' and ch == '[' then
+      compiled_str = compiled_str:sub(0, #compiled_str - 1)
+      depth = depth + 1
+      local e = '['
+      i = i + 1
+      while depth > 0 and i <= #str do
+        ch = str:sub(i, i)
+        if ch == '[' then
+          depth = depth + 1
+        elseif ch == ']' then
+          depth = depth - 1
+        end
+        e = e .. ch
+        i = i + 1
+        prev_prev = prev
+        prev = ch
+      end
+      ch = str:sub(i, i)
+      compiled_str = compiled_str .. compile_text(e, macros)
+      if ch ~= nil then
+        compiled_str = compiled_str .. ch
+      end
+    else
+      compiled_str = compiled_str .. ch
+    end
+    i = i + 1
+    prev_prev = prev
+    prev = ch
+    ch = str[i]
+  end
+  return compiled_str
+end
+local compile_from_parser
+compile_from_parser = function(parser)
+  local html = ''
+  for _, statement in ipairs(parser:parse()) do
+    if macros[statement.id] == nil then
+      local it = require('macros.' .. statement.id)
+      macros[statement.id] = it
+      if it == nil then
+        print('error: unknown macro: ' .. statement.id)
+        os.exit(1)
+      end
+    end
+    for key, param in pairs(statement.params) do
+      if param.kind == 'string' then
+        statement.params[key].text = compile_str(param.text, macros)
+      end
+    end
+    local m = macros[statement.id](statement.params)
+    if not m then
+      print('expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`')
+      os.exit(1)
+    end
+    html = html .. m
+  end
+  return html
+end
+compile_tokens = function(tokens)
+  return compile_from_parser(Parser(Tokens(tokens)))
+end
+compile_text = function(text)
+  return compile_from_parser(Parser(Tokenizer(text)))
+end
 local compile
 compile = function(fp)
   local file = io.open(fp)
@@ -511,8 +606,7 @@ compile = function(fp)
   end
   local source = file:read('*all')
   file:close()
-  local macros = get_builtin_macros()
-  local text = compile_text(source, macros)
+  local text = compile_text(source)
   return '<!DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 end
 return {
@@ -522,14 +616,16 @@ return {
   TokenKind = TokenKind,
   Token = Token,
   Tokenizer = Tokenizer,
+  Tokens = Tokens,
   Statement = Statement,
   Parser = Parser,
-  compile_text = compile_text,
-  compile_str = compile_str,
+  simple_element = simple_element,
+  macros = macros,
   config = config,
   vars = vars,
   element_stack = element_stack,
-  simple_element = simple_element,
+  compile_text = compile_text,
+  compile_str = compile_str,
   push_block_element = push_block_element,
   get_builtin_macros = get_builtin_macros,
   compile = compile

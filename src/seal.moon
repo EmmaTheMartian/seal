@@ -1,6 +1,6 @@
 is_term = (str) -> return str\match('^[%(%)%[%]{}:]$') != nil
-is_alpha = (str) -> return str\match('^[%l%w%-_]+$') != nil
-is_id_char = (str) -> return str\match('^[%l%w%d%-%._]+$') != nil
+is_alpha = (str) -> return str\match('^[%l%w%-$_]+$') != nil
+is_id_char = (str) -> return str\match('^[%l%w%d%-$_%.]+$') != nil
 
 class TokenKind
 	TERM   = 'term'   -- any of: []{}():
@@ -133,6 +133,15 @@ class Tokenizer
 				print "error: unexpected character `" .. @ch .. "` (at " .. @line .. ":" .. @column .. ")"
 				os.exit 1
 
+class Tokens
+	new: (tokens) =>
+		@tokens = tokens
+		@i = 0
+
+	get_next_token: =>
+		@i += 1
+		return @tokens[@i]
+
 class Statement
 	new: (id, params) =>
 		@id = id
@@ -190,72 +199,9 @@ class Parser
 
 		return statements
 
-compile_text = nil -- forward declare or something
-
-compile_str = (str, macros) ->
-	compiled_str = ''
-	ch = ''
-	prev = ''
-	prev_prev = ''
-	depth = 0
-	i = 1
-	while i <= #str
-		ch = str\sub i, i
-
-		if prev_prev != '\\' and prev == '$' and ch == '['
-			compiled_str = compiled_str\sub 0, #compiled_str - 1 -- Remove the `$` from the string
-			depth += 1
-			e = '['
-			i += 1
-			while depth > 0 and i <= #str
-				ch = str\sub i, i
-				if ch == '['
-					depth += 1
-				elseif ch == ']'
-					depth -= 1
-				e ..= ch
-				i += 1
-				prev_prev = prev
-				prev = ch
-			ch = str\sub i, i
-			compiled_str ..= compile_text e, macros
-			if ch != nil
-				compiled_str ..= ch
-		else
-			compiled_str ..= ch
-
-		i += 1
-		prev_prev = prev
-		prev = ch
-		ch = str[i]
-	return compiled_str
-
-compile_text = (text, macros) ->
-	parser = Parser Tokenizer(text)
-
-	html = ''
-
-	for _, statement in ipairs parser\parse!
-		if macros[statement.id] == nil
-			it = require 'macros.' .. statement.id
-			macros[statement.id] = it
-			if it == nil
-				print 'error: unknown macro: ' .. statement.id
-				os.exit 1
-
-		-- process string formatting
-		for key, param in pairs statement.params
-			if param.kind == 'string'
-				statement.params[key].text = compile_str param.text, macros
-
-		m = macros[statement.id](statement.params)
-		if not m
-			print 'expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`'
-			os.exit 1
-
-		html ..= m
-
-	return html
+-- forward declare or something
+compile_text = nil
+compile_tokens = nil
 
 config = {
 	lang: 'en'
@@ -274,6 +220,7 @@ push_block_element = (el) ->
 	table.insert element_stack, el
 	return '<' .. el .. '>'
 
+macros = {}
 get_builtin_macros = -> return {
 	-- Misc
 	raw: (t) -> return t[1].text
@@ -294,7 +241,56 @@ get_builtin_macros = -> return {
 	set: (t) ->
 		vars[t[1].text] = t[2].text
 		return ''
-	get: (t) -> return vars[t[1].text]
+	get: (t) ->
+		if vars[t[1].text] == nil
+			print 'error: no such variable `' .. t[1].text .. '`'
+			os.exit 1
+		else
+			return vars[t[1].text]
+
+	-- Meta-programming
+	def: (t) ->
+		id = t[1].text
+		params = nil
+		tokens = nil
+
+		for i, tok in ipairs t
+			if i == 1
+				continue -- skip the id
+			elseif params == nil and tok.kind == '('
+				params = {}
+			elseif tokens == nil and tok.kind == ')'
+				tokens = {}
+			elseif tokens != nil
+				table.insert tokens, tok
+			elseif params != nil
+				table.insert params, tok.text
+
+		if params == nil
+			print 'error: `def`: no parameter list provided'
+			os.exit 1
+		elseif tokens == nil
+			print 'error: `def`: no code provided'
+			os.exit 1
+
+		macros[id] = (t2) ->
+			p = {}
+			for i, param in ipairs params
+				print 'param: ' .. param .. ' = ' .. t2[i].text
+				p[param] = t2[i].text
+
+			processed_tokens = {}
+			for i, token in ipairs tokens
+				processed_tokens[i] = Token(token.line, token.column, token.kind, token.text)
+				if token.text\sub(1, 1) == '$' and p[token.text\sub(2, #token.text)] != nil
+					processed_tokens[i].text = p[token.text\sub(2, #token.text)]
+
+			return compile_tokens processed_tokens
+
+		return ''
+	undef: (t) ->
+		macros[t[1].text] = nil
+		return ''
 
 	-- Textual elements
 	h1: (t) -> return simple_element 'h1', t
@@ -333,6 +329,75 @@ get_builtin_macros = -> return {
 	table: (_) -> return push_block_element 'table'
 	tr: (_) -> return push_block_element 'tr'
 }
+macros = get_builtin_macros!
+
+compile_str = (str) ->
+	compiled_str = ''
+	ch = ''
+	prev = ''
+	prev_prev = ''
+	depth = 0
+	i = 1
+	while i <= #str
+		ch = str\sub i, i
+
+		if prev_prev != '\\' and prev == '$' and ch == '['
+			compiled_str = compiled_str\sub 0, #compiled_str - 1 -- Remove the `$` from the string
+			depth += 1
+			e = '['
+			i += 1
+			while depth > 0 and i <= #str
+				ch = str\sub i, i
+				if ch == '['
+					depth += 1
+				elseif ch == ']'
+					depth -= 1
+				e ..= ch
+				i += 1
+				prev_prev = prev
+				prev = ch
+			ch = str\sub i, i
+			compiled_str ..= compile_text e, macros
+			if ch != nil
+				compiled_str ..= ch
+		else
+			compiled_str ..= ch
+
+		i += 1
+		prev_prev = prev
+		prev = ch
+		ch = str[i]
+	return compiled_str
+
+compile_from_parser = (parser) ->
+	html = ''
+	for _, statement in ipairs parser\parse!
+		if macros[statement.id] == nil
+			it = require 'macros.' .. statement.id
+			macros[statement.id] = it
+			if it == nil
+				print 'error: unknown macro: ' .. statement.id
+				os.exit 1
+
+		-- process string formatting
+		for key, param in pairs statement.params
+			if param.kind == 'string'
+				statement.params[key].text = compile_str param.text, macros
+
+		m = macros[statement.id](statement.params)
+		if not m
+			print 'expected string from macro `' .. statement.id .. '` but got `' .. type(m) .. '`'
+			os.exit 1
+
+		html ..= m
+
+	return html
+
+compile_tokens = (tokens) ->
+	return compile_from_parser Parser(Tokens(tokens))
+
+compile_text = (text) ->
+	return compile_from_parser Parser(Tokenizer(text))
 
 compile = (fp) ->
 	file = io.open fp
@@ -341,9 +406,8 @@ compile = (fp) ->
 		os.exit 1
 	source = file\read '*all'
 	file\close!
-	macros = get_builtin_macros!
 
-	text = compile_text source, macros
+	text = compile_text source
 
 	return '<!DOCTYPE html><html lang="' .. config.lang .. '">' .. text .. '</html>'
 
@@ -354,14 +418,16 @@ compile = (fp) ->
 	:TokenKind,
 	:Token,
 	:Tokenizer,
+	:Tokens,
 	:Statement,
 	:Parser,
-	:compile_text,
-	:compile_str,
+	:simple_element,
+	:macros,
 	:config,
 	:vars,
 	:element_stack,
-	:simple_element,
+	:compile_text,
+	:compile_str,
 	:push_block_element
 	:get_builtin_macros,
 	:compile,

@@ -13,6 +13,15 @@
 
 	[ hr ]
 
+	[ def: make-linkie(name url)
+		[ p: $name " linkie <a href='" $url "'>here</a> ]!" ] ]
+	[ make-linkie: "Google" <https://google.com> ]
+	[ make-linkie: "Other" </other/> ]
+	[ undef: make-linkie ]
+
+	[ hr ]
+
 	[ p: "Google linkie $[ a: "here" <https://google.com> ]"]
 	[ p: "Other linkie $[ a: "here" </other/> ]!"]
+
 [ end ]
