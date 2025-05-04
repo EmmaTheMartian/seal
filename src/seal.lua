@@ -518,6 +518,9 @@ get_builtin_macros = function()
     end,
     tr = function(_)
       return push_block_element('tr')
+    end,
+    details = function(_)
+      return push_block_element('details')
     end
   }
 end
